@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Decibel Meter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Start Screen */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        #start-screen h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        #start-screen p {
+            font-size: 0.95rem;
+            color: #999;
+            line-height: 1.5;
+        }
+
+        #start-btn {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #start-btn:hover {
+            background: #43A047;
+        }
+
+        #start-btn:active {
+            transform: scale(0.95);
+        }
+
+        #error-msg {
+            color: #ef5350;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: none;
+        }
+
+        /* Meter Screen */
+        #meter-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            height: 100vh;
+            padding: 24px 0;
+            justify-content: space-between;
+        }
+
+        #meter-screen h1 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #999;
+        }
+
+        /* dB Readout */
+        #db-readout {
+            font-family: 'Courier New', monospace;
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #fff;
+            min-width: 200px;
+        }
+
+        #db-unit {
+            font-size: 1.2rem;
+            color: #999;
+            font-weight: 400;
+        }
+
+        /* Meter Bar */
+        .meter-wrapper {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+            height: 55vh;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .meter-ticks {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px 0;
+            width: 40px;
+            text-align: right;
+        }
+
+        .meter-ticks span {
+            font-size: 0.75rem;
+            color: #777;
+            font-family: 'Courier New', monospace;
+        }
+
+        .meter-bar-container {
+            flex: 1;
+            background: #0d0d1a;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #333;
+            min-width: 60px;
+        }
+
+        .meter-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0%;
+            transition: height 0.08s linear;
+            border-radius: 0 0 7px 7px;
+        }
+
+        /* Peak indicator line */
+        .meter-peak {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #fff;
+            transition: bottom 0.08s linear;
+            bottom: 0;
+            opacity: 0.8;
+        }
+
+        /* Threshold lines */
+        .meter-bar-container::before,
+        .meter-bar-container::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.15);
+            z-index: 1;
+        }
+
+        /* -40 dB line (yellow threshold) = 55.6% from bottom */
+        .meter-bar-container::before {
+            bottom: 55.6%;
+        }
+
+        /* -20 dB line (red threshold) = 77.8% from bottom */
+        .meter-bar-container::after {
+            bottom: 77.8%;
+        }
+
+        /* Calibration */
+        .calibration {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .calibration-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .calibration-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cal-btn {
+            background: #2a2a3e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .cal-btn:hover {
+            background: #3a3a50;
+        }
+
+        .cal-btn:active {
+            background: #4a4a60;
+        }
+
+        #cal-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            min-width: 100px;
+            color: #ccc;
+        }
+
+        #reset-btn {
+            background: none;
+            color: #777;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        #reset-btn:hover {
+            color: #e0e0e0;
+            border-color: #666;
+        }
+
+        /* Stop button */
+        #stop-btn {
+            background: #333;
+            color: #999;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        #stop-btn:hover {
+            background: #444;
+            color: #e0e0e0;
+        }
+
+        .note {
+            font-size: 0.7rem;
+            color: #555;
+            max-width: 280px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1>Decibel Meter</h1>
+            <p>Measure ambient sound levels using your device's microphone.</p>
+            <button id="start-btn" onclick="requestMicrophone()">Start</button>
+            <p id="error-msg"></p>
+        </div>
+
+        <!-- Meter Screen -->
+        <div id="meter-screen">
+            <h1>Decibel Meter</h1>
+
+            <div id="db-readout">
+                <span id="db-value">--.-</span>
+                <span id="db-unit">dB</span>
+            </div>
+
+            <div class="meter-wrapper">
+                <div class="meter-ticks">
+                    <span>0</span>
+                    <span>-20</span>
+                    <span>-40</span>
+                    <span>-60</span>
+                    <span>-80</span>
+                </div>
+                <div class="meter-bar-container">
+                    <div class="meter-fill" id="meter-fill"></div>
+                    <div class="meter-peak" id="meter-peak"></div>
+                </div>
+            </div>
+
+            <div class="calibration">
+                <span class="calibration-label">Calibration Offset</span>
+                <div class="calibration-controls">
+                    <button class="cal-btn" onclick="adjustCalibration(-1)">−</button>
+                    <span id="cal-value">+0.0 dB</span>
+                    <button class="cal-btn" onclick="adjustCalibration(+1)">+</button>
+                    <button id="reset-btn" onclick="resetCalibration()">Reset</button>
+                </div>
+            </div>
+
+            <button id="stop-btn" onclick="stopMeter()">Stop</button>
+
+            <p class="note">Relative measurement (dBFS). Use calibration to approximate SPL readings.</p>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let mediaStream = null;
+        let animationId = null;
+        let smoothedDB = -90;
+        let peakDB = -90;
+        let peakDecayTimer = 0;
+        let calibrationOffset = 0;
+
+        const DB_MIN = -90;
+        const DB_MAX = 0;
+        const SMOOTHING = 0.3;
+        const PEAK_HOLD_FRAMES = 60;
+        const PEAK_DECAY_RATE = 0.5;
+
+        // DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const meterScreen = document.getElementById('meter-screen');
+        const errorMsg = document.getElementById('error-msg');
+        const dbValue = document.getElementById('db-value');
+        const meterFill = document.getElementById('meter-fill');
+        const meterPeak = document.getElementById('meter-peak');
+        const calValue = document.getElementById('cal-value');
+
+        // Load calibration on init
+        loadCalibration();
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+        }
+
+        async function requestMicrophone() {
+            // Check support
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('Your browser does not support microphone access. Please use a modern browser.');
+                return;
+            }
+
+            // Check secure context
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                showError('Microphone access requires HTTPS or localhost. Please serve this page over a secure connection.');
+                return;
+            }
+
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        autoGainControl: false,
+                        noiseSuppression: false,
+                        echoCancellation: false
+                    }
+                });
+
+                // Create audio context (handle iOS Safari)
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                // Setup analyser
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                dataArray = new Float32Array(analyser.fftSize);
+
+                // Connect mic to analyser
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(analyser);
+
+                // Switch screens
+                startScreen.style.display = 'none';
+                meterScreen.style.display = 'flex';
+
+                // Start meter loop
+                smoothedDB = DB_MIN;
+                peakDB = DB_MIN;
+                updateMeter();
+            } catch (err) {
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    showError('Microphone access was denied. Please allow microphone access in your browser settings and reload the page.');
+                } else if (err.name === 'NotFoundError') {
+                    showError('No microphone found. Please connect a microphone and try again.');
+                } else {
+                    showError('Could not access microphone: ' + err.message);
+                }
+            }
+        }
+
+        function computeRMS(buffer) {
+            let sum = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                sum += buffer[i] * buffer[i];
+            }
+            return Math.sqrt(sum / buffer.length);
+        }
+
+        function rmsToDb(rms) {
+            if (rms < 1e-10) return DB_MIN;
+            const db = 20 * Math.log10(rms);
+            return Math.max(DB_MIN, Math.min(DB_MAX, db));
+        }
+
+        function dbToPercent(db) {
+            return ((db - DB_MIN) / (DB_MAX - DB_MIN)) * 100;
+        }
+
+        function getBarColor(percent) {
+            // Green → Yellow → Red
+            if (percent < 55) {
+                // Green zone
+                return '#4CAF50';
+            } else if (percent < 78) {
+                // Yellow zone
+                return '#FFC107';
+            } else {
+                // Red zone
+                return '#f44336';
+            }
+        }
+
+        function getBarGradient(percent) {
+            if (percent < 55) {
+                return 'linear-gradient(to top, #2E7D32, #4CAF50)';
+            } else if (percent < 78) {
+                return 'linear-gradient(to top, #2E7D32, #4CAF50 60%, #FFC107)';
+            } else {
+                return 'linear-gradient(to top, #2E7D32, #4CAF50 40%, #FFC107 70%, #f44336)';
+            }
+        }
+
+        function updateDisplay(db) {
+            const calibratedDB = db + calibrationOffset;
+            const clampedDB = Math.max(DB_MIN, Math.min(DB_MAX + Math.abs(calibrationOffset), calibratedDB));
+            const percent = dbToPercent(Math.max(DB_MIN, Math.min(DB_MAX, db)));
+
+            // Update numeric readout
+            dbValue.textContent = clampedDB.toFixed(1);
+
+            // Update bar
+            meterFill.style.height = percent + '%';
+            meterFill.style.background = getBarGradient(percent);
+
+            // Update peak
+            if (percent > dbToPercent(peakDB)) {
+                peakDB = db;
+                peakDecayTimer = PEAK_HOLD_FRAMES;
+            } else {
+                peakDecayTimer--;
+                if (peakDecayTimer <= 0) {
+                    peakDB -= PEAK_DECAY_RATE;
+                    if (peakDB < DB_MIN) peakDB = DB_MIN;
+                }
+            }
+            const peakPercent = dbToPercent(peakDB);
+            meterPeak.style.bottom = peakPercent + '%';
+            meterPeak.style.opacity = peakPercent > 0.5 ? '0.8' : '0';
+        }
+
+        function updateMeter() {
+            analyser.getFloatTimeDomainData(dataArray);
+            const rms = computeRMS(dataArray);
+            const db = rmsToDb(rms);
+
+            // Exponential smoothing
+            smoothedDB = SMOOTHING * db + (1 - SMOOTHING) * smoothedDB;
+
+            updateDisplay(smoothedDB);
+
+            animationId = requestAnimationFrame(updateMeter);
+        }
+
+        function stopMeter() {
+            // Stop animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            // Stop mic stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            // Close audio context
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            // Switch screens
+            meterScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+            errorMsg.style.display = 'none';
+        }
+
+        // Calibration
+        function loadCalibration() {
+            const stored = localStorage.getItem('db-meter-calibration');
+            if (stored !== null) {
+                calibrationOffset = parseFloat(stored);
+            }
+            updateCalibrationDisplay();
+        }
+
+        function adjustCalibration(delta) {
+            calibrationOffset += delta;
+            // Clamp to reasonable range
+            calibrationOffset = Math.max(-50, Math.min(50, calibrationOffset));
+            localStorage.setItem('db-meter-calibration', calibrationOffset.toString());
+            updateCalibrationDisplay();
+        }
+
+        function resetCalibration() {
+            calibrationOffset = 0;
+            localStorage.setItem('db-meter-calibration', '0');
+            updateCalibrationDisplay();
+        }
+
+        function updateCalibrationDisplay() {
+            const sign = calibrationOffset >= 0 ? '+' : '';
+            calValue.textContent = sign + calibrationOffset.toFixed(1) + ' dB';
+        }
+    </script>
+</body>
+</html>
