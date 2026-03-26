@@ -225,26 +225,26 @@ async function runAllTests() {
             assert(db > -90 && db < 0, `Expected between -90 and 0, got ${db}`);
         });
 
-        test('dbToPercent: DB_MIN (-90) returns 0%', () => {
-            assert.strictEqual(win.dbToPercent(-90), 0);
+        test('dbToPercent: DB_MIN (0) returns 0%', () => {
+            assert.strictEqual(win.dbToPercent(0), 0);
         });
 
-        test('dbToPercent: DB_MAX (0) returns 100%', () => {
-            assert.strictEqual(win.dbToPercent(0), 100);
+        test('dbToPercent: DB_MAX (120) returns 100%', () => {
+            assert.strictEqual(win.dbToPercent(120), 100);
         });
 
-        test('dbToPercent: -45 dB returns 50%', () => {
-            const pct = win.dbToPercent(-45);
+        test('dbToPercent: 60 dB returns 50%', () => {
+            const pct = win.dbToPercent(60);
             assert(Math.abs(pct - 50) < 0.01, `Expected 50, got ${pct}`);
         });
 
         test('dbToPercent: value below DB_MIN gives negative percent', () => {
-            const pct = win.dbToPercent(-100);
+            const pct = win.dbToPercent(-10);
             assert(pct < 0, `Expected negative, got ${pct}`);
         });
 
         test('dbToPercent: value above DB_MAX gives > 100%', () => {
-            const pct = win.dbToPercent(10);
+            const pct = win.dbToPercent(130);
             assert(pct > 100, `Expected > 100, got ${pct}`);
         });
 
@@ -306,66 +306,51 @@ async function runAllTests() {
         const win = dom.window;
         const doc = win.document;
 
-        test('initial calibration offset is 0', () => {
-            assert.strictEqual(win.calibrationOffset, 0);
+        test('initial calibration offset is 90', () => {
+            assert.strictEqual(win.calibrationOffset, 90);
         });
 
-        test('initial calibration display is +0.0 dB', () => {
-            assert.strictEqual(doc.getElementById('cal-value').textContent, '+0.0 dB');
+        test('initial calibration display is +0 dB', () => {
+            assert.strictEqual(doc.getElementById('cal-value').textContent, '+0 dB');
         });
 
-        test('adjustCalibration(+1) increments offset', () => {
+        test('adjustCalibration(+1) increments offset to 91', () => {
             win.adjustCalibration(1);
-            assert.strictEqual(win.calibrationOffset, 1);
-            assert.strictEqual(getCalibrationValue(doc), 1);
+            assert.strictEqual(win.calibrationOffset, 91);
+            assert.strictEqual(doc.getElementById('cal-value').textContent, '+1 dB');
         });
 
         test('adjustCalibration(-1) decrements offset', () => {
             win.resetCalibration();
             win.adjustCalibration(-1);
-            assert.strictEqual(win.calibrationOffset, -1);
+            assert.strictEqual(win.calibrationOffset, 89);
+            assert.strictEqual(doc.getElementById('cal-value').textContent, '-1 dB');
         });
 
-        test('calibration display updates after +5 adjustment', () => {
+        test('calibration clamps at +200 (+110 displayed)', () => {
             win.resetCalibration();
-            for (let i = 0; i < 5; i++) win.adjustCalibration(1);
-            assert.strictEqual(doc.getElementById('cal-value').textContent, '+5.0 dB');
+            for (let i = 0; i < 150; i++) win.adjustCalibration(1);
+            assert.strictEqual(win.calibrationOffset, 200);
+            assert.strictEqual(doc.getElementById('cal-value').textContent, '+110 dB');
         });
 
-        test('negative calibration display shows minus sign', () => {
+        test('calibration clamps at 0 (-90 displayed)', () => {
             win.resetCalibration();
-            win.adjustCalibration(-3);
-            assert.strictEqual(doc.getElementById('cal-value').textContent, '-3.0 dB');
+            for (let i = 0; i < 150; i++) win.adjustCalibration(-1);
+            assert.strictEqual(win.calibrationOffset, 0);
+            assert.strictEqual(doc.getElementById('cal-value').textContent, '-90 dB');
         });
 
-        test('calibration clamps at +50', () => {
-            win.resetCalibration();
-            for (let i = 0; i < 60; i++) win.adjustCalibration(1);
-            assert.strictEqual(win.calibrationOffset, 50);
-        });
-
-        test('calibration clamps at -50', () => {
-            win.resetCalibration();
-            for (let i = 0; i < 60; i++) win.adjustCalibration(-1);
-            assert.strictEqual(win.calibrationOffset, -50);
-        });
-
-        test('resetCalibration sets offset to 0', () => {
+        test('resetCalibration sets offset to 90', () => {
             win.adjustCalibration(10);
             win.resetCalibration();
-            assert.strictEqual(win.calibrationOffset, 0);
+            assert.strictEqual(win.calibrationOffset, 90);
         });
 
-        test('calibration persists to localStorage', () => {
+        test('calibration persists to localStorage using SPL key', () => {
             win.resetCalibration();
             win.adjustCalibration(7);
-            assert.strictEqual(dom._localStore['db-meter-calibration'], '7');
-        });
-
-        test('resetCalibration writes 0 to localStorage', () => {
-            win.adjustCalibration(15);
-            win.resetCalibration();
-            assert.strictEqual(dom._localStore['db-meter-calibration'], '0');
+            assert.strictEqual(dom._localStore['db-meter-calibration-spl'], '97');
         });
 
         dom.window.close();
@@ -373,17 +358,17 @@ async function runAllTests() {
 
     // Test calibration loading from localStorage (separate DOM instances)
     {
-        test('calibration loads +12.5 from localStorage on init', () => {
-            const dom = createDOM({ presetStorage: { 'db-meter-calibration': '12.5' } });
-            assert.strictEqual(dom.window.calibrationOffset, 12.5);
-            assert.strictEqual(dom.window.document.getElementById('cal-value').textContent, '+12.5 dB');
+        test('calibration loads +95 (displays +5) from localStorage on init', () => {
+            const dom = createDOM({ presetStorage: { 'db-meter-calibration-spl': '95' } });
+            assert.strictEqual(dom.window.calibrationOffset, 95);
+            assert.strictEqual(dom.window.document.getElementById('cal-value').textContent, '+5 dB');
             dom.window.close();
         });
 
-        test('calibration loads -8 from localStorage on init', () => {
-            const dom = createDOM({ presetStorage: { 'db-meter-calibration': '-8' } });
-            assert.strictEqual(dom.window.calibrationOffset, -8);
-            assert.strictEqual(dom.window.document.getElementById('cal-value').textContent, '-8.0 dB');
+        test('calibration migrates legacy key on init', () => {
+            const dom = createDOM({ presetStorage: { 'db-meter-calibration': '5.0' } });
+            assert.strictEqual(dom.window.calibrationOffset, 95.0);
+            assert.strictEqual(dom.window.document.getElementById('cal-value').textContent, '+5 dB');
             dom.window.close();
         });
     }
@@ -512,51 +497,68 @@ async function runAllTests() {
         const win = dom.window;
         const doc = win.document;
 
-        test('updateDisplay shows correct dB value', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+        test('updateDisplay: numerical readout follows peak indicator (clampedDB)', () => {
+            win.calibrationOffset = 100;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(-45.3);
-            assert.strictEqual(doc.getElementById('db-value').textContent, '-45.3');
+            win.updateDisplay(-45.3); // -45.3 + 100 = 54.7. peakDB = 54.7
+            assert.strictEqual(doc.getElementById('db-value').textContent, '54.7');
         });
 
-        test('updateDisplay applies calibration offset to readout', () => {
-            win.calibrationOffset = 10;
-            win.peakDB = -90;
-            win.peakDecayTimer = 0;
-            win.updateDisplay(-45.0);
-            assert.strictEqual(doc.getElementById('db-value').textContent, '-35.0');
+        test('updateDisplay: numerical readout stays at peak on quiet signal', () => {
+            win.calibrationOffset = 100;
+            win.peakDB = 80; // High initial peak
+            win.peakDecayTimer = 60;
+            win.updateDisplay(-60); // 40 dB SPL (lower than 80)
+            assert.strictEqual(doc.getElementById('db-value').textContent, '80.0');
         });
 
-        test('updateDisplay: -45 dB shows 50% bar height', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+        test('updateDisplay: numerical readout follows peak decay', () => {
+            win.calibrationOffset = 100;
+            win.peakDB = 80;
+            win.peakDecayTimer = 0; // Trigger decay
+            win.updateDisplay(-90); // 10 dB SPL (much lower than 80)
+            // 80 - 0.5 = 79.5
+            assert.strictEqual(doc.getElementById('db-value').textContent, '79.5');
+        });
+
+        test('updateDisplay: numerical readout applies calibration offset to peak', () => {
+            win.calibrationOffset = 110;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(-45);
+            win.updateDisplay(-45.0); // -45.0 + 110 = 65.0. peakDB = 65.0
+            assert.strictEqual(doc.getElementById('db-value').textContent, '65.0');
+        });
+
+        test('updateDisplay: 60 dB SPL shows 50% bar height', () => {
+            win.calibrationOffset = 100;
+            win.peakDB = 30;
+            win.peakDecayTimer = 0;
+            win.updateDisplay(-40); // -40 + 100 = 60. (60-0)/(120-0) = 50%
             assert.strictEqual(doc.getElementById('meter-fill').style.height, '50%');
         });
 
-        test('updateDisplay: -90 dB shows 0% bar', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+        test('updateDisplay: 0 dB SPL shows 0% bar', () => {
+            win.calibrationOffset = 90;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(-90);
+            win.updateDisplay(-90); // -90 + 90 = 0. (0-0)/120 = 0%
             assert.strictEqual(doc.getElementById('meter-fill').style.height, '0%');
         });
 
-        test('updateDisplay: 0 dB shows 100% bar', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+        test('updateDisplay: 120 dB SPL shows 100% bar', () => {
+            win.calibrationOffset = 120;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(0);
+            win.updateDisplay(0); // 0 + 120 = 120. (120-30)/90 = 100%
             assert.strictEqual(doc.getElementById('meter-fill').style.height, '100%');
         });
 
         test('meter bar gradient green for low level', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+            win.calibrationOffset = 100;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(-70);
+            win.updateDisplay(-60); // 40 dB SPL
             const bg = doc.getElementById('meter-fill').style.background;
             assert(bg.includes('4CAF50') || bg.includes('76, 175, 80') ||
                    bg.includes('2E7D32') || bg.includes('46, 125, 50'),
@@ -564,43 +566,43 @@ async function runAllTests() {
         });
 
         test('meter bar gradient includes yellow at mid level', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+            win.calibrationOffset = 100;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(-30);
+            win.updateDisplay(-20); // 80 dB SPL (yellow threshold)
             const bg = doc.getElementById('meter-fill').style.background;
             assert(bg.includes('FFC107') || bg.includes('255, 193, 7'),
                 `Expected yellow, got: ${bg}`);
         });
 
         test('meter bar gradient includes red at high level', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+            win.calibrationOffset = 110;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
-            win.updateDisplay(-5);
+            win.updateDisplay(0); // 110 dB SPL (well into red)
             const bg = doc.getElementById('meter-fill').style.background;
             assert(bg.includes('f44336') || bg.includes('244, 67, 54'),
                 `Expected red, got: ${bg}`);
         });
 
         test('peak indicator moves up on loud signal', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+            win.calibrationOffset = 100;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
             // Feed silence to reset
             for (let i = 0; i < 200; i++) win.updateDisplay(-90);
             // Now loud signal
-            win.updateDisplay(-10);
+            win.updateDisplay(-10); // 90 dB SPL
             const peakBottom = parseFloat(doc.getElementById('meter-peak').style.bottom);
             assert(peakBottom > 50, `Peak should be high, got ${peakBottom}%`);
         });
 
         test('peak holds for 60 frames then decays', () => {
-            win.calibrationOffset = 0;
-            win.peakDB = -90;
+            win.calibrationOffset = 100;
+            win.peakDB = 30;
             win.peakDecayTimer = 0;
             // Set peak with loud signal
-            win.updateDisplay(-10);
+            win.updateDisplay(-10); // 90 dB SPL
             const peakAfterLoud = parseFloat(doc.getElementById('meter-peak').style.bottom);
 
             // Feed silence - peak should hold then decay
@@ -702,6 +704,7 @@ async function runAllTests() {
             assert(meta, 'Viewport meta tag should exist');
             assert(meta.content.includes('width=device-width'));
             assert(meta.content.includes('user-scalable=no'));
+            assert(meta.content.includes('viewport-fit=cover'));
         });
 
         test('charset is UTF-8', () => {
@@ -734,22 +737,18 @@ async function runAllTests() {
             assert(doc.querySelector('.meter-bar-container'));
         });
 
-        test('meter ticks show correct labels', () => {
+        test('mascot and right signals containers exist', () => {
+            assert(doc.querySelector('.mascot-container'));
+            assert(doc.querySelector('.right-signals'));
+        });
+
+        test('meter ticks show correct SPL labels', () => {
             const labels = Array.from(doc.querySelectorAll('.meter-ticks span')).map(t => t.textContent);
-            assert.deepStrictEqual(labels, ['0', '-20', '-40', '-60', '-80']);
+            assert.deepStrictEqual(labels, ['120', '90', '60', '30', '0']);
         });
 
         test('dB unit label shows "dB"', () => {
             assert.strictEqual(doc.getElementById('db-unit').textContent, 'dB');
-        });
-
-        test('note mentions dBFS', () => {
-            const note = doc.querySelector('.note');
-            assert(note && note.textContent.includes('dBFS'));
-        });
-
-        test('calibration label text is correct', () => {
-            assert.strictEqual(doc.querySelector('.calibration-label').textContent, 'Calibration Offset');
         });
 
         dom.window.close();

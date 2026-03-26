@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Decibel Meter</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         * {
             margin: 0;
@@ -13,7 +18,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
+            background: #000;
             color: #e0e0e0;
             min-height: 100vh;
             display: flex;
@@ -22,29 +27,26 @@
             overflow: hidden;
         }
 
-        .container {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            text-align: center;
-        }
-
         /* Start Screen */
         #start-screen {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 24px;
+            width: 100%;
+            max-width: clamp(300px, 90vw, 500px);
+            padding: 40px 20px;
+            text-align: center;
         }
 
         #start-screen h1 {
-            font-size: 1.8rem;
+            font-size: clamp(1.5rem, 8vw, 2.5rem);
             font-weight: 600;
             color: #fff;
         }
 
         #start-screen p {
-            font-size: 0.95rem;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
             color: #999;
             line-height: 1.5;
         }
@@ -54,9 +56,9 @@
             color: #fff;
             border: none;
             border-radius: 50%;
-            width: 120px;
-            height: 120px;
-            font-size: 1.1rem;
+            width: clamp(100px, 25vw, 160px);
+            height: clamp(100px, 25vw, 160px);
+            font-size: clamp(1rem, 4vw, 1.3rem);
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
@@ -75,76 +77,318 @@
 
         #error-msg {
             color: #ef5350;
-            font-size: 0.9rem;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
             line-height: 1.5;
             display: none;
         }
 
-        /* Meter Screen */
+        /* Meter Screen - Natural Flex Flow */
         #meter-screen {
             display: none;
             flex-direction: column;
-            align-items: center;
-            gap: 16px;
+            width: 100vw;
             height: 100vh;
-            padding: 24px 0;
-            justify-content: space-between;
+            height: 100dvh;
+            background: #000;
+            box-sizing: border-box;
+            padding: clamp(10px, 3vh, 30px);
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
 
         #meter-screen h1 {
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: #999;
+            font-size: clamp(0.6rem, 2vw, 0.9rem);
+            font-weight: 400;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+            z-index: 10;
+        }
+
+        /* Top Section: Title and Encouragement */
+        /* Top Section */
+        .top-section {
+            text-align: center;
+            flex-shrink: 0;
+            margin-bottom: 2vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        /* Middle Section: Mascot (Left) and Signals (Right) */
+        .middle-section {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            width: 100%;
+            gap: 15px;
+            margin-bottom: 2vh;
+        }
+
+        /* Central Mascot Area - Flex child */
+        .mascot-container {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 0;
+            pointer-events: none;
+        }
+
+        .mascot-box {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s ease-out;
+        }
+
+        .mascot-img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            display: none;
+            object-fit: contain;
+            mix-blend-mode: screen;
+        }
+
+        .mascot-box.calm .img-calm { display: block; }
+        .mascot-box.happy .img-happy { display: block; }
+        .mascot-box.excited .img-excited { display: block; }
+
+        /* Right Side Signals (Meter only) */
+        .right-signals {
+            width: 70px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-shrink: 0;
         }
 
         /* dB Readout */
         #db-readout {
             font-family: 'Courier New', monospace;
-            font-size: 3.5rem;
+            font-size: clamp(0.8rem, 2.5vw, 1.2rem);
             font-weight: 700;
             color: #fff;
-            min-width: 200px;
+            text-align: center;
         }
 
         #db-unit {
-            font-size: 1.2rem;
-            color: #999;
-            font-weight: 400;
+            display: none;
         }
 
-        /* Meter Bar */
+        /* Encouragement Text */
+        #encouragement-text {
+            position: relative;
+            text-align: center;
+            font-size: clamp(1.4rem, 5vw, 3rem);
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255,255,255,0.4);
+            z-index: 15;
+            pointer-events: none;
+            font-style: italic;
+            letter-spacing: -1px;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Bride Mascot CSS Puppet (BACKUP)
+        .bride {
+            position: relative;
+            width: 100px;
+            height: 130px;
+        }
+        .bride-body {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90px;
+            height: 60px;
+            background: #d32f2f;
+            border-radius: 40px 40px 10px 10px;
+            border-top: 4px solid #ffd700;
+            border: 2px solid #000;
+        }
+        .bride-head {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 80px;
+            background: #ffdbac;
+            border-radius: 35px 35px 30px 30px;
+            z-index: 2;
+            border: 2px solid #000;
+        }
+        .bride-veil {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85px;
+            height: 100px;
+            background: #b71c1c;
+            border-radius: 40px 40px 20px 20px;
+            z-index: 1;
+            border: 2px solid #ffd700;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .bindi {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #ff0000;
+            border-radius: 50%;
+            box-shadow: 0 0 2px #ffd700;
+        }
+        .nath {
+            position: absolute;
+            top: 48px;
+            left: 38px;
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid #ffd700;
+            border-radius: 50%;
+        }
+        .eye {
+            position: absolute;
+            top: 35px;
+            width: 10px;
+            height: 10px;
+            background: #000;
+            border-radius: 50%;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .eye.left { left: 15px; }
+        .eye.right { right: 15px; }
+        .eye-heart {
+            display: none;
+            font-size: 1.2rem;
+            position: absolute;
+        }
+        .mouth {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 8px;
+            border-bottom: 3px solid #c2185b;
+            border-radius: 0 0 10px 10px;
+            transition: all 0.2s;
+        }
+        */
+
+        /* SVG Mascot Styles */
+        .mascot-box {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s ease-out;
+        }
+
+        .mascot-img {
+            max-width: 100%;
+            max-height: 100%;
+            display: none;
+            object-fit: contain;
+        }
+
+        .mascot-box.calm .img-calm { display: block; }
+        .mascot-box.happy .img-happy { display: block; }
+        .mascot-box.excited .img-excited { display: block; }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .mascot-box.excited {
+            animation: shake 0.5s infinite;
+        }
+
+        /* Mascot States - (BACKUP)
+        .mascot-box.calm .eye { transform: scale(1); }
+        .mascot-box.happy .mouth { height: 12px; width: 25px; border-radius: 5px 5px 15px 15px; background: #c2185b; }
+        .mascot-box.happy .eye { transform: scale(1.8); }
+        .mascot-box.excited .mouth { height: 20px; width: 30px; border-radius: 5px 5px 20px 20px; background: #880e4f; }
+        .mascot-box.excited .eye { background: none; }
+        .mascot-box.excited .eye-heart { display: block; }
+        */
+
+        /* Meter Bar Adjustments */
         .meter-wrapper {
             display: flex;
             align-items: stretch;
             gap: 8px;
-            height: 55vh;
-            width: 100%;
-            max-width: 200px;
+            flex: 1;
+            max-height: 40vh;
+            width: 60px;
         }
 
         .meter-ticks {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 4px 0;
-            width: 40px;
+            padding: 2px 0;
+            width: 20px;
             text-align: right;
         }
 
         .meter-ticks span {
-            font-size: 0.75rem;
-            color: #777;
+            font-size: clamp(0.5rem, 1.5vw, 0.7rem);
+            color: #333;
             font-family: 'Courier New', monospace;
+            font-weight: 700;
         }
 
         .meter-bar-container {
             flex: 1;
-            background: #0d0d1a;
-            border-radius: 8px;
+            background: #050510;
+            border-radius: 4px;
             position: relative;
             overflow: hidden;
-            border: 1px solid #333;
-            min-width: 60px;
+            border: 1px solid #1a1a2e;
         }
 
         .meter-fill {
@@ -162,11 +406,12 @@
             position: absolute;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: #fff;
             transition: bottom 0.08s linear;
             bottom: 0;
-            opacity: 0.8;
+            opacity: 0.6;
+            box-shadow: 0 0 10px #fff;
         }
 
         /* Threshold lines */
@@ -181,99 +426,91 @@
             z-index: 1;
         }
 
-        /* -40 dB line (yellow threshold) = 55.6% from bottom */
+        /* 80 dB line (yellow threshold) = 55.6% from bottom ( (80-30)/(120-30) = 5/9 ≈ 55.6% ) */
         .meter-bar-container::before {
             bottom: 55.6%;
         }
 
-        /* -20 dB line (red threshold) = 77.8% from bottom */
+        /* 100 dB line (red threshold) = 77.8% from bottom ( (100-30)/(120-30) = 7/9 ≈ 77.8% ) */
         .meter-bar-container::after {
             bottom: 77.8%;
         }
 
-        /* Calibration */
-        .calibration {
+        /* Bottom Controls Row - Natural Flow */
+        .bottom-controls {
+            flex-shrink: 0;
+            height: auto;
+            min-height: clamp(60px, 8vh, 90px);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            z-index: 30;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+
+        .calibration-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .cal-btn-group {
+            display: flex;
             gap: 8px;
-            width: 100%;
-        }
-
-        .calibration-label {
-            font-size: 0.75rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        .calibration-controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
 
         .cal-btn {
-            background: #2a2a3e;
-            color: #e0e0e0;
-            border: 1px solid #444;
+            background: #111;
+            color: #fff;
+            border: 1px solid #222;
             border-radius: 8px;
-            width: 48px;
-            height: 48px;
-            font-size: 1.4rem;
+            width: clamp(32px, 8vw, 54px);
+            height: clamp(32px, 8vw, 54px);
+            font-size: clamp(1rem, 4vw, 1.8rem);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.15s;
-        }
-
-        .cal-btn:hover {
-            background: #3a3a50;
-        }
-
-        .cal-btn:active {
-            background: #4a4a60;
         }
 
         #cal-value {
             font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
-            min-width: 100px;
-            color: #ccc;
+            font-size: clamp(0.7rem, 2vw, 1.1rem);
+            color: #fff;
+            min-width: clamp(40px, 10vw, 70px);
+            text-align: center;
         }
 
         #reset-btn {
             background: none;
-            color: #777;
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 0.85rem;
+            color: #444;
+            border: 1px solid #222;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: clamp(0.6rem, 1.5vw, 0.8rem);
             cursor: pointer;
-            transition: color 0.15s, border-color 0.15s;
         }
 
-        #reset-btn:hover {
-            color: #e0e0e0;
-            border-color: #666;
-        }
-
-        /* Stop button */
         #stop-btn {
-            background: #333;
-            color: #999;
-            border: 1px solid #555;
+            background: #b71c1c;
+            color: #fff;
+            border: none;
             border-radius: 8px;
-            padding: 10px 24px;
-            font-size: 0.9rem;
+            padding: clamp(8px, 2vh, 15px) clamp(12px, 4vw, 30px);
+            font-size: clamp(0.7rem, 2.5vw, 1.1rem);
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.15s;
         }
 
-        #stop-btn:hover {
-            background: #444;
-            color: #e0e0e0;
+        /* Responsive adjustments */
+        @media (max-width: 500px) {
+            #reset-btn { display: none; }
         }
 
         .note {
@@ -285,51 +522,67 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Start Screen -->
-        <div id="start-screen">
-            <h1>Decibel Meter</h1>
-            <p>Measure ambient sound levels using your device's microphone.</p>
-            <button id="start-btn" onclick="requestMicrophone()">Start</button>
-            <p id="error-msg"></p>
-        </div>
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>Decibel Meter</h1>
+        <p>Measure ambient sound levels using your device's microphone.</p>
+        <button id="start-btn" onclick="requestMicrophone()">Start</button>
+        <p id="error-msg"></p>
+    </div>
 
-        <!-- Meter Screen -->
-        <div id="meter-screen">
-            <h1>Decibel Meter</h1>
-
-            <div id="db-readout">
-                <span id="db-value">--.-</span>
-                <span id="db-unit">dB</span>
+    <!-- Meter Screen -->
+    <div id="meter-screen">
+            <div class="top-section">
+                <h1>Decibel Meter</h1>
+                <div id="encouragement-text">Too quiet...</div>
             </div>
 
-            <div class="meter-wrapper">
-                <div class="meter-ticks">
-                    <span>0</span>
-                    <span>-20</span>
-                    <span>-40</span>
-                    <span>-60</span>
-                    <span>-80</span>
+            <div class="middle-section">
+                <!-- Mascot Centered -->
+                <div class="mascot-container">
+                    <div id="mascot-box" class="mascot-box calm">
+                        <img src="svg/calm.svg" class="mascot-img img-calm" alt="Calm Mascot">
+                        <img src="svg/happy.svg" class="mascot-img img-happy" alt="Happy Mascot">
+                        <img src="svg/excited.svg" class="mascot-img img-excited" alt="Excited Mascot">
+                    </div>
                 </div>
-                <div class="meter-bar-container">
-                    <div class="meter-fill" id="meter-fill"></div>
-                    <div class="meter-peak" id="meter-peak"></div>
+
+                <!-- Readout and Meter on the Right -->
+                <div class="right-signals">
+                    <div id="db-readout">
+                        <span id="db-value">--.-</span>
+                        <span id="db-unit">dB</span>
+                    </div>
+
+                    <div class="meter-wrapper">
+                        <div class="meter-ticks">
+                            <span>120</span>
+                            <span>90</span>
+                            <span>60</span>
+                            <span>30</span>
+                            <span>0</span>
+                        </div>
+                        <div class="meter-bar-container">
+                            <div class="meter-fill" id="meter-fill"></div>
+                            <div class="meter-peak" id="meter-peak"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="calibration">
-                <span class="calibration-label">Calibration Offset</span>
-                <div class="calibration-controls">
-                    <button class="cal-btn" onclick="adjustCalibration(-1)">−</button>
-                    <span id="cal-value">+0.0 dB</span>
-                    <button class="cal-btn" onclick="adjustCalibration(+1)">+</button>
+            <!-- New Bottom Controls Row -->
+            <div class="bottom-controls">
+                <div class="calibration-row">
+                    <div class="cal-btn-group">
+                        <button class="cal-btn" onmousedown="startAdjusting(-1)" onmouseup="stopAdjusting()" onmouseleave="stopAdjusting()" ontouchstart="startAdjusting(-1)" ontouchend="stopAdjusting()">−</button>
+                        <button class="cal-btn" onmousedown="startAdjusting(+1)" onmouseup="stopAdjusting()" onmouseleave="stopAdjusting()" ontouchstart="startAdjusting(+1)" ontouchend="stopAdjusting()">+</button>
+                    </div>
+                    <span id="cal-value">+0 dB</span>
                     <button id="reset-btn" onclick="resetCalibration()">Reset</button>
                 </div>
+
+                <button id="stop-btn" onclick="stopMeter()">Stop</button>
             </div>
-
-            <button id="stop-btn" onclick="stopMeter()">Stop</button>
-
-            <p class="note">Relative measurement (dBFS). Use calibration to approximate SPL readings.</p>
         </div>
     </div>
 
@@ -341,15 +594,18 @@
         var mediaStream = null;
         var animationId = null;
         var smoothedDB = -90;
-        var peakDB = -90;
+        var peakDB = 0;
         var peakDecayTimer = 0;
-        var calibrationOffset = 0;
+        var calibrationOffset = 90;
+        var adjustInterval = null;
+        var welcomeLocked = false;
 
-        const DB_MIN = -90;
-        const DB_MAX = 0;
+        const DB_MIN = 0; // SPL
+        const DB_MAX = 120; // SPL
         const SMOOTHING = 0.3;
         const PEAK_HOLD_FRAMES = 60;
         const PEAK_DECAY_RATE = 0.5;
+        const CALIBRATION_DEFAULT = 90;
 
         // DOM elements
         const startScreen = document.getElementById('start-screen');
@@ -359,6 +615,8 @@
         const meterFill = document.getElementById('meter-fill');
         const meterPeak = document.getElementById('meter-peak');
         const calValue = document.getElementById('cal-value');
+        const mascotBox = document.getElementById('mascot-box');
+        const encouragement = document.getElementById('encouragement-text');
 
         // Load calibration on init
         loadCalibration();
@@ -433,9 +691,9 @@
         }
 
         function rmsToDb(rms) {
-            if (rms < 1e-10) return DB_MIN;
+            if (rms < 1e-10) return -90; // dBFS min
             const db = 20 * Math.log10(rms);
-            return Math.max(DB_MIN, Math.min(DB_MAX, db));
+            return Math.max(-90, Math.min(0, db));
         }
 
         function dbToPercent(db) {
@@ -466,21 +724,18 @@
             }
         }
 
-        function updateDisplay(db) {
-            const calibratedDB = db + calibrationOffset;
-            const clampedDB = Math.max(DB_MIN, Math.min(DB_MAX + Math.abs(calibrationOffset), calibratedDB));
-            const percent = dbToPercent(Math.max(DB_MIN, Math.min(DB_MAX, db)));
-
-            // Update numeric readout
-            dbValue.textContent = clampedDB.toFixed(1);
+        function updateDisplay(dbFS) {
+            const calibratedDB = dbFS + calibrationOffset;
+            const clampedDB = Math.max(DB_MIN, Math.min(DB_MAX, calibratedDB));
+            const percent = dbToPercent(clampedDB);
 
             // Update bar
             meterFill.style.height = percent + '%';
             meterFill.style.background = getBarGradient(percent);
 
             // Update peak
-            if (percent > dbToPercent(peakDB)) {
-                peakDB = db;
+            if (clampedDB > peakDB) {
+                peakDB = clampedDB;
                 peakDecayTimer = PEAK_HOLD_FRAMES;
             } else {
                 peakDecayTimer--;
@@ -489,18 +744,60 @@
                     if (peakDB < DB_MIN) peakDB = DB_MIN;
                 }
             }
+
+            // Update numeric readout to follow peak
+            dbValue.textContent = peakDB.toFixed(1);
+
             const peakPercent = dbToPercent(peakDB);
             meterPeak.style.bottom = peakPercent + '%';
             meterPeak.style.opacity = peakPercent > 0.5 ? '0.8' : '0';
+
+            // Update Mascot State and Encouragement Text based on peakDB
+            if (mascotBox && !welcomeLocked) {
+                mascotBox.classList.remove('calm', 'happy', 'excited');
+                
+                if (peakDB < 40) {
+                    encouragement.textContent = "Too quiet...";
+                    encouragement.style.color = "#555";
+                    encouragement.style.transform = "scale(0.8)";
+                    mascotBox.classList.add('calm');
+                } else if (peakDB < 65) {
+                    encouragement.textContent = "Keep going!";
+                    encouragement.style.color = "#4CAF50";
+                    encouragement.style.transform = "scale(1)";
+                    mascotBox.classList.add('calm');
+                } else if (peakDB < 85) {
+                    encouragement.textContent = "That's it!";
+                    encouragement.style.color = "#FFC107";
+                    encouragement.style.transform = "scale(1.1)";
+                    mascotBox.classList.add('happy');
+                } else if (peakDB < 100) {
+                    encouragement.textContent = "LOUDER!!";
+                    encouragement.style.color = "#FF9800";
+                    encouragement.style.transform = "scale(1.3)";
+                    mascotBox.classList.add('happy');
+                } else if (peakDB < 115) {
+                    encouragement.textContent = "SHOUT IT OUT!";
+                    encouragement.style.color = "#f44336";
+                    encouragement.style.transform = "scale(1.5)";
+                    mascotBox.classList.add('excited');
+                } else {
+                    encouragement.textContent = "WELCOME!";
+                    encouragement.style.color = "#fff";
+                    encouragement.style.transform = "scale(1.8)";
+                    mascotBox.classList.add('excited');
+                    welcomeLocked = true;
+                }
+            }
         }
 
         function updateMeter() {
             analyser.getFloatTimeDomainData(dataArray);
             const rms = computeRMS(dataArray);
-            const db = rmsToDb(rms);
+            const dbFS = rmsToDb(rms);
 
             // Exponential smoothing
-            smoothedDB = SMOOTHING * db + (1 - SMOOTHING) * smoothedDB;
+            smoothedDB = SMOOTHING * dbFS + (1 - SMOOTHING) * smoothedDB;
 
             updateDisplay(smoothedDB);
 
@@ -513,6 +810,9 @@
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
+
+            // Reset state
+            welcomeLocked = false;
 
             // Stop mic stream
             if (mediaStream) {
@@ -534,30 +834,63 @@
 
         // Calibration
         function loadCalibration() {
-            const stored = localStorage.getItem('db-meter-calibration');
+            const stored = localStorage.getItem('db-meter-calibration-spl');
             if (stored !== null) {
                 calibrationOffset = parseFloat(stored);
+            } else {
+                // Try legacy key if exists
+                const legacy = localStorage.getItem('db-meter-calibration');
+                if (legacy !== null) {
+                    calibrationOffset = parseFloat(legacy) + 90; // Rough conversion
+                    localStorage.removeItem('db-meter-calibration');
+                }
             }
             updateCalibrationDisplay();
         }
 
+        function startAdjusting(delta) {
+            adjustCalibration(delta);
+            // Initial delay before repeating
+            adjustInterval = setTimeout(() => {
+                adjustInterval = setInterval(() => {
+                    adjustCalibration(delta);
+                }, 100); // 100ms for 1dB steps feels natural
+            }, 500);
+        }
+
+        function stopAdjusting() {
+            if (adjustInterval) {
+                clearTimeout(adjustInterval);
+                clearInterval(adjustInterval);
+                adjustInterval = null;
+            }
+        }
+
         function adjustCalibration(delta) {
             calibrationOffset += delta;
-            // Clamp to reasonable range
-            calibrationOffset = Math.max(-50, Math.min(50, calibrationOffset));
-            localStorage.setItem('db-meter-calibration', calibrationOffset.toString());
+            // Clamp to reasonable range for SPL offset
+            calibrationOffset = Math.max(0, Math.min(200, calibrationOffset));
+            localStorage.setItem('db-meter-calibration-spl', calibrationOffset.toString());
             updateCalibrationDisplay();
         }
 
         function resetCalibration() {
-            calibrationOffset = 0;
-            localStorage.setItem('db-meter-calibration', '0');
+            calibrationOffset = CALIBRATION_DEFAULT;
+            localStorage.setItem('db-meter-calibration-spl', CALIBRATION_DEFAULT.toString());
             updateCalibrationDisplay();
         }
 
         function updateCalibrationDisplay() {
-            const sign = calibrationOffset >= 0 ? '+' : '';
-            calValue.textContent = sign + calibrationOffset.toFixed(1) + ' dB';
+            const displayOffset = Math.round(calibrationOffset - CALIBRATION_DEFAULT);
+            const sign = displayOffset >= 0 ? '+' : '';
+            calValue.textContent = sign + displayOffset + ' dB';
+        }
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+            });
         }
     </script>
 </body>
