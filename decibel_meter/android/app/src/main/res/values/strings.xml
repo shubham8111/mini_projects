@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Decibel Meter SPL</string>
+    <string name="title_activity_main">Decibel Meter SPL</string>
+    <string name="package_name">com.stark.dbmeter</string>
+    <string name="custom_url_scheme">com.stark.dbmeter</string>
+</resources>

@@ -1,0 +1,18 @@
+{
+  "name": "decibel_meter",
+  "version": "1.0.0",
+  "description": "A simple web-based decibel meter that uses your device's microphone to display audio levels in real time.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "jsdom": "^29.0.1"
+  }
+}
