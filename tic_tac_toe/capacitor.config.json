@@ -1,0 +1,6 @@
+{
+  "appId":    "com.stark.tictactoe",
+  "appName":  "Tic Tac Toe",
+  "webDir":   "dist",
+  "bundledWebRuntime": false
+}

@@ -1,0 +1,17 @@
+{
+  "name": "tic_tac_toe",
+  "version": "1.0.0",
+  "description": "Tic Tac Toe – Vanishing Marks Edition. Web app + Android via Capacitor.",
+  "scripts": {
+    "test":  "node test.js",
+    "build": "rm -rf dist && mkdir -p dist && cp -r index.html css js manifest.json sw.js dist/",
+    "sync":  "npm run build && npx cap sync android",
+    "open":  "npx cap open android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli":     "^8.2.0",
+    "@capacitor/core":    "^8.2.0",
+    "jsdom":              "^29.0.1"
+  }
+}

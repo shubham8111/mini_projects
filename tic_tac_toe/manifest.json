@@ -1,0 +1,24 @@
+{
+  "name": "Tic Tac Toe – Vanishing Marks",
+  "short_name": "Tic Tac Toe",
+  "description": "Tic Tac Toe where each player can have at most 4 marks — the oldest disappears when a 5th is placed.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f1a",
+  "theme_color": "#0f0f1a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
